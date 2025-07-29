@@ -21,6 +21,10 @@ app.use("/TicketController", TicketController);
 
 app.use('/uploads', express.static('uploads'));
 
+app.get("/", (req, res) => {
+    res.send({ active: true, message: "Server is running" , error: false });
+});
+
 mongoose.connect(process.env.db, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
