@@ -36,6 +36,6 @@ const TicketSchema = new mongoose.Schema({
     }]
 }, { timestamps: true });
 
-const Ticket = mongoose.model('Ticket', TicketSchema);
+const Ticket = mongoose.model('Tickett', TicketSchema);
 
 export default Ticket; // ES Module export
