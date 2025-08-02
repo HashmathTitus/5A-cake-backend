@@ -36,8 +36,8 @@ const upload = multer({
 
 // Helper function to validate required fields
 const validateTicketFields = (ticketData) => {
-    const { name, description, event, rating, dateReported } = ticketData;
-    if (!name || !description || !event || !rating || !dateReported) {
+    const { name, description, event, rating } = ticketData;
+    if (!name || !description || !event || !rating) {
         return false;
     }
     return true;
@@ -45,9 +45,9 @@ const validateTicketFields = (ticketData) => {
 
 // Add a new ticket
 router.post("/Ticket", upload.array("images", 10), async (req, res) => {
-    const { name, description, event, rating, dateReported } = req.body;
+    const { name, description, event, rating } = req.body;
     // Validate request body
-    if (!name || !description || !event || !rating || !dateReported) {
+    if (!name || !description || !event || !rating) {
         return res.status(400).json({ message: "All fields are required" });
     }
     try {
@@ -57,8 +57,8 @@ router.post("/Ticket", upload.array("images", 10), async (req, res) => {
             description,
             event,
             rating: parseFloat(rating),
-            dateReported,
             images
+            // dateReported will default to Date.now
         });
         await newTicket.save();
         res.status(201).json({ message: "Your Ticket Added Successfully!" });
