@@ -1,5 +1,19 @@
 import mongoose from 'mongoose';
 
+const imageSchema = new mongoose.Schema(
+  {
+    url: {
+      type: String,
+      required: true,
+    },
+    publicId: {
+      type: String,
+      default: null,
+    },
+  },
+  { _id: false }
+);
+
 const EventSchema = new mongoose.Schema(
   {
     name: {
@@ -21,16 +35,30 @@ const EventSchema = new mongoose.Schema(
     location: {
       type: String,
       trim: true,
+      required: [true, 'Location is required'],
     },
+    category: {
+      type: String,
+      trim: true,
+      default: 'General Event',
+    },
+    coverImage: imageSchema,
     images: [
-      {
-        type: String, // URL from Cloudinary or local server
-      },
+      imageSchema,
     ],
     status: {
       type: String,
       enum: ['upcoming', 'ongoing', 'completed'],
       default: 'upcoming',
+    },
+    visibility: {
+      type: String,
+      enum: ['draft', 'published', 'completed', 'hidden'],
+      default: 'published',
+    },
+    featured: {
+      type: Boolean,
+      default: false,
     },
     feedbackCount: {
       type: Number,

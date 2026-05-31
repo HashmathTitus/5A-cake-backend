@@ -26,6 +26,10 @@ const AdminSchema = new mongoose.Schema(
       enum: ['admin', 'superadmin'],
       default: 'admin',
     },
+    lastLoginAt: {
+      type: Date,
+      default: null,
+    },
     isActive: {
       type: Boolean,
       default: true,

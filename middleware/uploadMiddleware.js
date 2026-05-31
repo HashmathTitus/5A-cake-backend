@@ -2,78 +2,62 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import cloudinary, { initCloudinary } from '../config/cloudinary.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const allowedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const allowedExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+const maxFileSize = 5 * 1024 * 1024; // 5MB
 
-// Check if Cloudinary is configured
-const useCloudinary = process.env.CLOUDINARY_CLOUD_NAME ? true : false;
+initCloudinary();
 
-let upload;
+const createSafeFilename = (file) => {
+  const parsedName = path.basename(file.originalname, path.extname(file.originalname))
+    .replace(/[^a-zA-Z0-9-_]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '') || 'upload';
+  const extension = path.extname(file.originalname).toLowerCase();
+  return `${parsedName}-${Date.now()}-${Math.round(Math.random() * 1e9)}${extension}`;
+};
 
-if (useCloudinary) {
-  // Cloudinary configuration
-  import('multer-storage-cloudinary').then(({ CloudinaryStorage }) => {
-    import('cloudinary').then(({ v2: cloudinary }) => {
-      const storage = new CloudinaryStorage({
-        cloudinary: cloudinary,
-        params: {
-          folder: '5a-feedback',
-          allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-        },
-      });
-
-      upload = multer({
-        storage,
-        fileFilter: (req, file, cb) => {
-          const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-          if (allowedMimes.includes(file.mimetype)) {
-            cb(null, true);
-          } else {
-            cb(new Error('Invalid file type. Only images allowed.'));
-          }
-        },
-        limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-      });
+const buildStorage = () => {
+  if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+    return new CloudinaryStorage({
+      cloudinary,
+      params: {
+        folder: '5a-events',
+        allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+      },
     });
-  });
-} else {
-  // Local multer storage
-  const uploadDir = 'uploads';
+  }
+
+  const uploadDir = path.resolve(__dirname, '..', 'uploads');
   if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
   }
 
-  const createSafeFilename = (file) => {
-    const parsedName = path.basename(file.originalname, path.extname(file.originalname))
-      .replace(/[^a-zA-Z0-9-_]/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '') || 'upload';
+  return multer.diskStorage({
+    destination: (req, file, cb) => cb(null, uploadDir),
+    filename: (req, file, cb) => cb(null, createSafeFilename(file)),
+  });
+};
+
+const upload = multer({
+  storage: buildStorage(),
+  limits: { fileSize: maxFileSize },
+  fileFilter: (req, file, cb) => {
     const extension = path.extname(file.originalname).toLowerCase();
-    return `${parsedName}-${Date.now()}-${Math.round(Math.random() * 1e9)}${extension}`;
-  };
+    if (!allowedMimeTypes.has(file.mimetype) || !allowedExtensions.has(extension)) {
+      return cb(new Error('Only JPG, PNG and WEBP images are allowed'));
+    }
 
-  const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-      cb(null, createSafeFilename(file));
-    },
-  });
+    if (file.size && file.size > maxFileSize) {
+      return cb(new Error('Image size must be less than 5MB'));
+    }
 
-  upload = multer({
-    storage,
-    fileFilter: (req, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase();
-      const allowedExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-      if (allowedExts.includes(ext)) {
-        cb(null, true);
-      } else {
-        cb(new Error('Invalid file type. Only images allowed.'));
-      }
-    },
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-  });
-}
+    return cb(null, true);
+  },
+});
 
 export default upload;

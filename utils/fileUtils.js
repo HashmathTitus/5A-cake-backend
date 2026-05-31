@@ -1,25 +1,40 @@
-export const getUploadedFileUrl = (req, file) => {
+export const getUploadedFileRecord = (req, file) => {
   if (!file) {
-    return '';
+    return null;
   }
 
-  if (file.secure_url) {
-    return file.secure_url;
+  const url = file.secure_url || file.url || file.path || (file.filename ? `${req.protocol}://${req.get('host')}/uploads/${file.filename}` : '');
+  const publicId = file.public_id || file.filename || null;
+
+  if (!url) {
+    return null;
   }
 
-  if (file.url) {
-    return file.url;
-  }
-
-  if (file.filename) {
-    return `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
-  }
-
-  if (file.path) {
-    return file.path;
-  }
-
-  return '';
+  return {
+    url,
+    publicId,
+  };
 };
 
-export const mapUploadedFiles = (req, files = []) => files.map((file) => getUploadedFileUrl(req, file)).filter(Boolean);
+export const mapUploadedFiles = (req, files = []) => files.map((file) => getUploadedFileRecord(req, file)).filter(Boolean);
+
+export const normalizeStoredImage = (image) => {
+  if (!image) {
+    return null;
+  }
+
+  if (typeof image === 'string') {
+    return { url: image, publicId: null };
+  }
+
+  if (image.url) {
+    return {
+      url: image.url,
+      publicId: image.publicId || image.public_id || null,
+    };
+  }
+
+  return null;
+};
+
+export const mapImageUrls = (images = []) => images.map((image) => normalizeStoredImage(image)?.url).filter(Boolean);
