@@ -3,7 +3,8 @@ export const getUploadedFileRecord = (req, file) => {
     return null;
   }
 
-  const url = file.secure_url || file.url || file.path || (file.filename ? `${req.protocol}://${req.get('host')}/uploads/${file.filename}` : '');
+  const localUploadUrl = file.filename ? `${req.protocol}://${req.get('host')}/uploads/${file.filename}` : '';
+  const url = file.secure_url || file.url || localUploadUrl || file.path || '';
   const publicId = file.public_id || file.filename || null;
 
   if (!url) {
@@ -27,9 +28,9 @@ export const normalizeStoredImage = (image) => {
     return { url: image, publicId: null };
   }
 
-  if (image.url) {
+  if (image.url || image.secure_url || image.path) {
     return {
-      url: image.url,
+      url: image.url || image.secure_url || image.path,
       publicId: image.publicId || image.public_id || null,
     };
   }
